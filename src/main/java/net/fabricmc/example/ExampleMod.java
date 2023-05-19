@@ -1,21 +1,37 @@
-package net.fabricmc.example;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.LiteralText;
+import org.lwjgl.glfw.GLFW;
 
-import net.fabricmc.api.ModInitializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+public class HideChatMod implements ClientModInitializer {
 
-public class ExampleMod implements ModInitializer {
-	// This logger is used to write text to the console and the log file.
-	// It is considered best practice to use your mod id as the logger's name.
-	// That way, it's clear which mod wrote info, warnings, and errors.
-	public static final Logger LOGGER = LoggerFactory.getLogger("modid");
+    private static boolean isChatHidden = true;
 
-	@Override
-	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
+    @Override
+    public void onInitializeClient() {
+        KeyBindingHelper.registerKeyBinding(InputUtil.fromTranslationKey("key.hide_chat"), GLFW.GLFW_KEY_T, "key.categories.misc");
+        KeyBindingHelper.registerKeyBinding(InputUtil.fromTranslationKey("key.hide_chat"), GLFW.GLFW_KEY_SLASH, "key.categories.misc");
 
-		LOGGER.info("Hello Fabric world!");
-	}
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.currentScreen instanceof ChatScreen) {
+                ChatScreen chatScreen = (ChatScreen) client.currentScreen;
+                if (isChatHidden) {
+                    if (InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow().getHandle(), GLFW.GLFW_KEY_T) ||
+                        InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow().getHandle(), GLFW.GLFW_KEY_SLASH)) {
+                        isChatHidden = false;
+                        chatScreen.setMessage(new LiteralText(""));
+                    }
+                } else {
+                    if (!ScreenExtensions.getText(chatScreen).equals(new LiteralText(""))) {
+                        isChatHidden = true;
+                        chatScreen.setMessage(new LiteralText(""));
+                    }
+                }
+            }
+        });
+    }
 }
